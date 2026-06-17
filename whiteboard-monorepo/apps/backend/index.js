@@ -8,10 +8,9 @@ app.use(cors());
 
 const server = createServer(app);
 
-// Socket.io setup for real-time communication
 const io = new Server(server, {
   cors: {
-    origin: "*", // Local network pe sabko allow karne ke liye
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -19,9 +18,7 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log(`/-! CODE VERSE: Naya user connect hua -> ${socket.id}`);
 
-  // Jab koi user canvas pe draw kare
   socket.on("draw", (data) => {
-    // Ye data baaki saare connected users ko bhej do (khud ko chhod kar)
     socket.broadcast.emit("draw", data);
   });
 
