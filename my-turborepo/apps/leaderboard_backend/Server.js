@@ -2,16 +2,19 @@ import express from "express";
 import cors from "cors";
 import { Redis } from "ioredis";
 
-
 const app = express();
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
+const redis = new Redis({
+  host: "127.0.0.1",
+  port: 6379,
+});
 
+redis.on('connect', () => console.log('/-! Redis Connected Successfully!'));
 
-
-app.get('/', (req, res) => {
-  res.send('Leaderboard API is running');
+app.get("/", (req, res) => {
+  res.send("Leaderboard API is running");
 });
 
 const PORT = 5000;
