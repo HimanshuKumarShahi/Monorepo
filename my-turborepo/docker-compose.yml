@@ -1,0 +1,5 @@
+services:
+  redis-leaderboard:
+    image: redis:alpine
+    container_name: redis-cache
+    ports: -"6379:6379"
