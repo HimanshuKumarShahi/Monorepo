@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "scripts.js",
+  "main": "Server.js",
   "type": "module",
   "scripts": {
     "dev": "node --watch Server.js"
