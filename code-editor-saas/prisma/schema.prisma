@@ -11,6 +11,7 @@ model User {
   name      String
   email     String   @unique
   password  String   
+  isPro     Boolean  @default(false)
   files     File[]   
   createdAt DateTime @default(now())
 }
@@ -19,6 +20,7 @@ model File {
   id        String   @id @default(cuid())
   title     String
   content   String   @db.Text  
+  language  String   @default("javascript")
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

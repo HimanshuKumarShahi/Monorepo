@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,19 +20,18 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Registration fail ho gaya!");
+      if (res?.error) {
+        throw new Error(res.error || "Login fail ho gaya!");
       }
 
-      router.push("/login");
+      router.push("/dashboard");
+      router.refresh();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -48,70 +48,58 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/60 backdrop-blur-xl shadow-2xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-extrabold text-indigo-400 tracking-wider">
-            REGISTER
+            LOGIN
           </CardTitle>
           <CardDescription className="text-zinc-400 font-medium">
-            Naya account banao aur code likhna shuru karo.
+            Apne account mein login karein aur code editor load karein.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-zinc-300">Naam</label>
-              <Input 
-                type="text" 
-                placeholder="Tera naam..." 
-                className="border-zinc-700 bg-zinc-900/85 text-white focus:border-indigo-500 placeholder:text-zinc-600 focus:ring-1 focus:ring-indigo-500"
-                value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
               <label className="text-sm font-semibold text-zinc-300">Email</label>
-              <Input 
-                type="email" 
-                placeholder="hacker@example.com" 
+              <Input
+                type="email"
+                placeholder="email@example.com"
                 className="border-zinc-700 bg-zinc-900/85 text-white focus:border-indigo-500 placeholder:text-zinc-600 focus:ring-1 focus:ring-indigo-500"
                 value={formData.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-zinc-300">Password</label>
-              <Input 
-                type="password" 
-                placeholder="••••••••" 
+              <Input
+                type="password"
+                placeholder="••••••••"
                 className="border-zinc-700 bg-zinc-900/85 text-white focus:border-indigo-500 placeholder:text-zinc-600 focus:ring-1 focus:ring-indigo-500"
                 value={formData.password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
             </div>
-            
+
             {error && (
               <div className="rounded-md bg-red-500/10 p-3 text-sm font-medium text-red-400 border border-red-500/20">
                 {error}
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-600/30 py-6" 
+            <Button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-600/30 py-6"
               disabled={loading}
             >
-              {loading ? "Account ban raha hai..." : "Submit Karo"}
+              {loading ? "Authenticating..." : "Login"}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-zinc-400">
-            Pehle se account hai?{" "}
-            <Link href="/login" className="font-semibold text-indigo-400 hover:text-indigo-300 hover:underline">
-              Login karein
+            Account nahi hai?{" "}
+            <Link href="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 hover:underline">
+              Naya account banao
             </Link>
           </div>
         </CardContent>
