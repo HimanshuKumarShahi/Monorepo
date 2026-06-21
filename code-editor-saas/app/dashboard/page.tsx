@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { 
   Plus, FileCode, Trash2, Edit2, LogOut, Code, 
-  Crown, Sparkles, FolderOpen, Calendar
+  Crown, Sparkles, FolderOpen, Calendar, HelpCircle, ShieldAlert
 } from "lucide-react";
 import Link from "next/link";
 
@@ -42,6 +42,16 @@ export default function DashboardPage() {
       router.push("/login");
     } else if (status === "authenticated") {
       fetchFiles();
+      
+      // Parse query parameters using browser APIs to avoid build-time suspense errors
+      const params = new URLSearchParams(window.location.search);
+      const checkoutStatus = params.get("checkout");
+      if (checkoutStatus === "success" || checkoutStatus === "mock_success") {
+        handleActivatePro();
+      } else if (checkoutStatus === "cancel") {
+        alert("Payment process cancelled.");
+        router.replace("/dashboard");
+      }
     }
   }, [status]);
 
@@ -57,6 +67,23 @@ export default function DashboardPage() {
       console.error("Failed to fetch files", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleActivatePro = async () => {
+    try {
+      const res = await fetch("/api/user/upgrade", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        alert("Upgrade successful! Welcome to CodeVerse PRO! 🚀");
+        await update({ isPro: true });
+        router.replace("/dashboard");
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("Error activating PRO tier:", err);
     }
   };
 
@@ -140,19 +167,18 @@ export default function DashboardPage() {
   const handleUpgradeToPro = async () => {
     setUpgrading(true);
     try {
-      const res = await fetch("/api/user/upgrade", {
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
       });
 
-      if (res.ok) {
-        alert("Successfully upgraded to CodeVerse Pro! 🚀");
-        await update({ isPro: true });
-        router.refresh();
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
       } else {
-        alert("Failed to upgrade. Please try again.");
+        throw new Error(data.message || "Upgrade initialization failed.");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(`Stripe error: ${err.message}`);
     } finally {
       setUpgrading(false);
     }
@@ -173,6 +199,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+      
       {/* Navbar */}
       <header className="border-b border-zinc-900 bg-zinc-900/40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -186,12 +213,12 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900 text-xs">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-905 text-xs">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="text-zinc-350 font-semibold">{session?.user?.name || "Developer"}</span>
+              <span className="text-zinc-300 font-semibold">{session?.user?.name || "Developer"}</span>
               {isPro ? (
                 <span className="ml-1.5 flex items-center gap-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border border-indigo-500/30">
-                  <Crown className="h-2 w-2" /> PRO
+                  <Crown className="h-2.5 w-2.5 text-indigo-400" /> PRO
                 </span>
               ) : (
                 <span className="ml-1.5 bg-zinc-800 text-zinc-400 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border border-zinc-700">
@@ -217,20 +244,20 @@ export default function DashboardPage() {
         
         {/* Pro Banner */}
         {!isPro && (
-          <div className="relative p-6 md:p-8 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-purple-950/30 to-zinc-900/60 backdrop-blur-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl shadow-indigo-950/20">
+          <div className="relative p-6 md:p-8 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-zinc-900/40 backdrop-blur-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl shadow-indigo-950/10">
             <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-indigo-400/30 bg-indigo-500/10 text-[10px] font-bold tracking-wider text-indigo-300 uppercase">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-indigo-400/20 bg-indigo-500/10 text-[10px] font-bold tracking-wider text-indigo-300 uppercase">
                 <Sparkles className="h-3 w-3" /> Limited Account
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">Upgrade to CodeVerse Pro today</h2>
-              <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+              <p className="text-zinc-450 text-sm md:text-base leading-relaxed">
                 You are currently on the Free Plan which limits you to 3 code files. Upgrade to unlock unlimited storage, premium editor themes, and priority code execution.
               </p>
             </div>
             <Button 
               onClick={handleUpgradeToPro}
               disabled={upgrading}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-base px-6 py-5 rounded-xl shadow-lg shadow-indigo-600/30 hover:scale-[1.02] transition-all shrink-0 self-start md:self-auto"
+              className="bg-indigo-650 hover:bg-indigo-650 text-white font-bold text-base px-6 py-5 rounded-xl shadow-lg shadow-indigo-600/30 hover:scale-[1.02] transition-all shrink-0 self-start md:self-auto"
             >
               {upgrading ? "Upgrading..." : "Unlock Pro ($10/mo)"}
             </Button>
@@ -267,7 +294,7 @@ export default function DashboardPage() {
 
           <Card className="border-zinc-900 bg-zinc-900/40 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-semibold tracking-wider text-zinc-450 uppercase">Session Active</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wider text-zinc-455 uppercase">Session Active</CardTitle>
               <Calendar className="h-5 w-5 text-purple-400" />
             </CardHeader>
             <CardContent>
@@ -299,16 +326,16 @@ export default function DashboardPage() {
 
           {files.length === 0 ? (
             <div className="border border-dashed border-zinc-800 rounded-2xl p-16 text-center max-w-2xl mx-auto space-y-4">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-zinc-500">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-zinc-550">
                 <FileCode className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-bold">No files created yet</h3>
-              <p className="text-zinc-500 text-sm max-w-sm mx-auto font-medium">
+              <p className="text-zinc-500 text-sm max-w-sm mx-auto font-semibold">
                 Create a new file to launch the editor workspace. You can choose JavaScript, HTML, Python, and more.
               </p>
               <Button 
                 onClick={() => setShowCreateModal(true)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 font-semibold"
+                className="bg-zinc-905 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 font-semibold"
               >
                 Create your first file
               </Button>
@@ -334,7 +361,7 @@ export default function DashboardPage() {
                             <Button 
                               size="sm" 
                               onClick={() => handleSaveRename(file.id)}
-                              className="h-8 bg-indigo-600 hover:bg-indigo-500 px-2.5 font-bold"
+                              className="h-8 bg-indigo-600 hover:bg-indigo-550 px-2.5 font-bold"
                             >
                               Save
                             </Button>
