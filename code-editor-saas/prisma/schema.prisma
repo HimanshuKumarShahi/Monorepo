@@ -7,13 +7,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String   
-  isPro     Boolean  @default(false)
-  files     File[]   
-  createdAt DateTime @default(now())
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  password         String?   
+  isPro            Boolean   @default(false)
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  files            File[]   
+  createdAt        DateTime  @default(now())
 }
 
 model File {
