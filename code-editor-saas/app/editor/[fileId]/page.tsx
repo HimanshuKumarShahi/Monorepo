@@ -209,14 +209,15 @@ export default function EditorPage() {
   const handleUpgradeToPro = async () => {
     setUpgrading(true);
     try {
-      const res = await fetch("/api/user/upgrade", { method: "POST" });
-      if (res.ok) {
-        alert("Successfully upgraded to CodeVerse Pro! 🚀");
-        await update({ isPro: true });
-        router.refresh();
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.message || "Stripe initialization failed.");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(`Stripe error: ${err.message}`);
     } finally {
       setUpgrading(false);
     }

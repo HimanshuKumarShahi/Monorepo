@@ -1,10 +1,15 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GithubProvider from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export const authOptions = {
   providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_ID || "mock-github-id",
+      clientSecret: process.env.GITHUB_SECRET || "mock-github-secret",
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -24,6 +29,10 @@ export const authOptions = {
           throw new Error("Ye email registered nahi hai!");
         }
 
+        if (!user.password) {
+          throw new Error("Koshish fail: Is account mein social login configured hai. GitHub se sign in karein.");
+        }
+
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
@@ -40,6 +49,34 @@ export const authOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }: any) {
+      if (account?.provider === "github") {
+        if (!user.email) {
+          throw new Error("GitHub email is required to sign in!");
+        }
+
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+
+        if (!existingUser) {
+          const newUser = await prisma.user.create({
+            data: {
+              name: user.name || "GitHub Developer",
+              email: user.email,
+              password: null,
+              isPro: false,
+            },
+          });
+          user.id = newUser.id;
+          user.isPro = newUser.isPro;
+        } else {
+          user.id = existingUser.id;
+          user.isPro = existingUser.isPro;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
